@@ -11,7 +11,7 @@ use crate::{
     mempool::{FeeHistogram, Mempool},
     metrics::Metrics,
     signals::ExitFlag,
-    status::{Balance, ScriptHashStatus, UnspentEntry},
+    status::{Balance, OutPointStatus, ScriptHashStatus, UnspentEntry},
 };
 
 /// Electrum protocol subscriptions' tracker
@@ -91,6 +91,14 @@ impl Tracker {
 
     pub(crate) fn get_balance(&self, status: &ScriptHashStatus) -> Balance {
         status.get_balance(self.chain())
+    }
+
+    pub(crate) fn update_outpoint_status(
+        &self,
+        status: &mut OutPointStatus,
+        daemon: &Daemon,
+    ) -> Result<bool> {
+        status.sync(&self.index, &self.mempool, daemon)
     }
 
     pub(crate) fn get_blockhash_by_txid(&self, txid: Txid) -> Option<BlockHash> {
