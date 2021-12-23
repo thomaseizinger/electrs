@@ -17,6 +17,9 @@ jobs:
         with:
           ref: ${{ github.event.release.target_commitish }}
 
+      - name: Install system dependencies
+        run: sudo apt install clang cmake build-essential
+
       - name: Install toolchain from `rust-toolchain.toml`
         run: | 
           rustup show
