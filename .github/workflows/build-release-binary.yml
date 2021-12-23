@@ -1,0 +1,47 @@
+name: "Build release binary"
+
+on:
+  release:
+    types: [created]
+
+jobs:
+  build_binaries:
+    name: Build release binary
+    strategy:
+      matrix:
+        target: [x86_64-unknown-linux-gnu, aarch64-unknown-linux-gnu]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout tagged commit
+        uses: actions/checkout@v2.4.0
+        with:
+          ref: ${{ github.event.release.target_commitish }}
+
+      - name: Install toolchain from `rust-toolchain.toml`
+        run: rustup show
+
+      - uses: Swatinem/rust-cache@v1.3.0
+        with:
+          key: ${{ matrix.target }}
+
+      - name: Install compiler for aarch64 arch (armv8)
+        if: matrix.target == 'aarch64-unknown-linux-gnu'
+        run: |
+          sudo apt-get update
+          sudo apt-get install 'gcc-aarch64-linux-gnu'
+
+      - name: Build ${{ matrix.target }} release binary
+        run: cargo build --target=${{ matrix.target }} --locked --release
+
+      - name: Pack linux archive
+        if: matrix.os == 'ubuntu-latest'
+        shell: bash
+        run: tar -C ./target/${{ matrix.target }}/release --create --file=electrs-${{ matrix.target }}.tar electrs
+
+      - name: Upload archive
+        uses: actions/upload-release-asset@v1.0.2
+        with:
+          upload_url: ${{ github.event.release.upload_url }}
+          asset_path: ./electrs-${{ matrix.target }}.tar
+          asset_name: electrs-${{ matrix.target }}.tar
+          asset_content_type: application/gzip
